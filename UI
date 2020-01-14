@@ -1,0 +1,161 @@
+#Load the data
+load("players2.RData")
+load("data_test.RData")
+players <- readRDS("processed_players.rds")
+load("data_final.RData")
+fifa19 <- read.csv("fifa19.csv")
+world_data = readRDS("world_map_fifa_colored.rds")
+
+
+# Start the UI
+
+list<- data_test
+list2<-fifa19
+list$Name <- as.character(list$Name)
+list_Club <- as.character(list$Club)
+ui <- fluidPage(use_waitress(color = "#8ebbda", percent_color = "#FFFFFF"),
+    
+                 
+                 
+                theme = shinytheme("yeti"),
+                titlePanel("FIFA 19"),
+                
+                sidebarLayout(
+                  sidebarPanel(
+                    br(),
+                    uiOutput("ui_fifa",align="center"),
+                    br(),
+                    h4(strong('The analysis')),
+                    br(),
+                    h6('I am a big fan of video games in general and sports simulations in particular. 
+                       I have always played', strong("FIFA"), 'and I saw in this project an opportunity to work on a dataset that was more meaningful to me.'),
+                    br(),
+                    h6('This Shiny App uses the data set from Kaggle.com.'),
+                    h6("Packages used in this app are : Htmlwidgets, Ggplot2, Shiny, Shinydashboard, Plotly, Leaflet, Rsconnect, Gsubfn, Proto, Rsqlite, Shinyjs, Ellipsis, Tidyverse, GoogleVis, Gganimate, Dplyr, DT and Shinydashboard." ),
+                    br(),
+                    br(),
+                    a(h6(strong("My LinkedIn")),color = "blue",href="https://www.linkedin.com/in/jad-ejrhom/",target="_blank"),
+                    a(h6(strong("The Data set used ")),href="https://www.kaggle.com/karangadiya/fifa19",target="_blank"),
+                    br(),
+                    h6('Jad Ejrhom')),
+                  
+                  mainPanel(
+                    tabsetPanel(
+#First Tab
+                      tabPanel(title = "Overview", p(h3("Explore the data set")),
+                               p(h6("Put on your football shoes 
+                                    and discover all the information that my data set has to offer. Take a look at some interesting figures that this data set has to offer.")),
+                               fluidRow(
+                                 column(
+                                   width = 6, align = "center",
+                                   valueBoxOutput(("number_players"), width = 8),
+                                   valueBoxOutput(("mean_age"), width = 8)),
+                                 br(),
+                                 column(
+                                   width = 6, align = "center",
+                                   valueBoxOutput(("numb_club"), width = 8),
+                                   valueBoxOutput(("numb_natio"), width = 8))),
+                                 br(),
+                               p(h3("Distribution of the observations")),
+                               p(h6("This graphs give an idea about how the observations are distributed according to their",strong("age"), "and their", strong("rating."))),
+                               br(),
+                               fluidRow(
+                                 column(width = 12,
+                                   plotOutput("H", height = "400", width = "800"),
+                                   br(),
+                                   br(),
+                                   plotOutput("H_a", height = "400", width = "800"))),
+                                   br(),
+                               p(h6(strong("21-year-olds"), "are the most present in the dataset. Additionally, a large part of the players have a", strong("score below 80.")
+                                    
+                              )
+                              )),
+                      
+                      
+                      
+#Second Tab                    
+                      tabPanel(title = "All the players", 
+                               p(h3("Information about all the players ", align = "left")),
+                               p(h6("Discover important information concerning your favourite", strong("players."), align = 'left')),
+                               br(),
+                               br(),
+                               dashboardBody(datatable(players2) %>% formatStyle(columns = "Club", target = "cell", backgroundColor = "#A4CDF7", width = 10))),
+                      
+#Third Tab
+                      tabPanel(title = 'Player', 
+                               p(h3('Information about your favourite player ', align = "left")),
+                               p(h6("You want to know all the information concerning your favourite player ?", strong("Easy ! "), align = 'left')),
+                               br(),
+                               h3(strong("Select the player "), align = "center"),
+                               selectizeInput("Ply",
+                                              " ",
+                                              choices = as.character(list$Name), 
+                                              selected = as.character(list$Name)[3], 
+                                              multiple = FALSE),
+                               htmlOutput(outputId = "infos_generales_4"),
+                               br(),
+                               br(),
+                               column(width = 4, align = "center",  uiOutput("ui_joueur"), br(),  uiOutput("Flag",align = "center"), br(), htmlOutput(outputId = "infos_generales_2"), align = "center"),
+                               plotlyOutput('spider_plot_input1',height = 350, width = 550), align = "center",
+                               br(),
+                               br(),
+                               column(width = 4, uiOutput("photo_club", align = "center"), br(), htmlOutput(outputId = "infos_club")),
+                              sidebarPanel(align="center", p(h5(strong('Rating of the selected player'), br(), style = "font-size:16px", br(), htmlOutput("hp", align = "center")))),
+                              sidebarPanel(p(h5(strong('Potential of the selected player'), 
+                                                align = "center", br(), 
+                                                style = "font-size:16px",br(), 
+                                                htmlOutput("cp", align = "center"))))),
+                      
+#Fourth Tab
+                      tabPanel(title = "World Map",
+                               p(h3("Around the world")),
+                               p(h6("Thanks to this world map, find out the number of players and the average rating of each country.")),
+                               p(h6(strong("Be patient, it sometimes takes time to load !"))),
+                               br(),
+                               mainPanel(leafletOutput('world_map', height = 500)),
+                               br(),
+                               sidebarPanel(radioButtons('map_color', 
+                                                         "Select the variable to color the map", 
+                                                         choices = c("Average Overall", 
+                                                                     "Number of players"),
+                                                         selected = "Number of players") 
+                               )
+                      ),
+
+#Fifth Tab
+                      
+                      tabPanel(title = "Variables exploration",
+                               p(h3("Explore the variables")),
+                               p(h6("Creating a scatter plot is an excellent way to understand the variables and how they are correlated.")
+                               ),
+                               br(),
+                               mainPanel(plotOutput('plot', height = 583 )),
+                               br(),
+                               sidebarPanel(
+                                 
+                                 selectInput('x', 'Choose the x-axis variable', 
+                                             choices = c("Age",
+                                                         "Height (cm)",
+                                                         "Weight (kg)",
+                                                         "Value (M EUR)",
+                                                         "Wage (K EUR)",
+                                                         "Release Clause (M EUR)"),
+                                             selected = "Value (M EUR)"),
+                                 
+                                 selectInput('y', 'Choose the y-axis variable',
+                                             choices = c("Overall", "Potential", "Acceleration",
+                                                         "Sprint Speed", "Shot Power",
+                                                         "Heading Accuracy", "Stamina",
+                                                         "Strength", "Agility",
+                                                         "Jumping"),
+                                             selected = "Overall"),
+                                 selectInput('color', 'Color', c('None', 'Position')),
+                                 
+                                 checkboxInput('lm', 'Regression Line'),
+                                 checkboxInput('smooth', 'Local Regression - LOESS'))
+                                 
+                               )
+                    )
+                  )
+                )
+                )
