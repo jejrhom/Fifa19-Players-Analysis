@@ -1,0 +1,360 @@
+# Start the server
+
+server <- function(input, output, session) {
+  waitress = Waitress$
+    new(theme = "overlay-percent")$
+    start()
+  for(i in 1:10){
+    waitress$increase(10) # increase by 10%
+    Sys.sleep(.3)
+  }
+  
+  # Waiter 
+  waitress$hide() 
+  
+    output$Table <- renderDataTable(data_final)
+  
+  # 1) Scatter Plot
+  output$plot <- renderPlot({
+    
+    data_x <- switch (input$x,
+                      "Age" = players$Age,
+                      "Height (cm)" = players$`Height (cm)`,
+                      "Weight (kg)" = players$`Weight (kg)`,
+                      "Value (M EUR)"  = players$`Value (M EUR)`,
+                      "Wage (K EUR)"   = players$`Wage (K EUR)`,
+                      "Release Clause (M EUR)" = players$`Release Clause (M EUR)`
+    )
+    
+    data_y <- switch (input$y,
+                      "Overall"      = players$Overall,
+                      "Potential"    = players$Potential,
+                      "Acceleration" = players$Acceleration,
+                      "Sprint Speed" = players$SprintSpeed,
+                      "Shot Power"   = players$ShotPower,
+                      "Heading Accuracy" = players$HeadingAccuracy,
+                      "Stamina"  = players$Stamina,
+                      "Strength" = players$Strength, 
+                      "Agility"  = players$Agility,
+                      "Jumping"  = players$Jumping
+    )
+    
+    theme_update(plot.title = element_text(hjust = 0.5, size = 18))
+    p <- ggplot(players, 
+                aes_string(x=data_x, y=data_y)) + geom_point() +
+      ggtitle("Database Explorer") + xlab(input$x) + ylab(input$y)
+    
+    
+    if (input$color != 'None')
+      p <- p + aes_string(color="Position_simple")
+    if (input$lm)
+      p <- p + geom_smooth(method='lm',formula=y~x, na.rm = T)
+    if (input$smooth)
+      p <- p + geom_smooth(method='loess',formula=y~x, na.rm = T)
+    
+    print(p)
+  }) # End of the Scatter Plot
+  
+  
+  # 2 - Spider plot comparison
+  dora_data <- reactive({data_test %>% 
+      filter(Name==input$Ply)})
+  output$spider_plot_input1 <- renderPlotly(
+    plot_ly( 
+      type = 'scatterpolar',
+      r = c(dora_data()$Strength[1], 
+            dora_data()$Dribbling[1], 
+            dora_data()$Agility[1],
+            dora_data()$BallControl[1],
+            dora_data()$Finishing[1],
+            dora_data()$SprintSpeed[1],
+            dora_data()$LongPassing[1],
+            dora_data()$Reactions[1],
+            dora_data()$Aggression[1],
+            dora_data()$HeadingAccuracy[1],
+            dora_data()$Strength[1]
+      ),
+      theta = c('Strength', 'Dribbling', "Agility", "Ball Control", "Finishing", "Sprint Speed", "Long Passing", "Reactions", "Aggression", "Heading Accuracy", "Strength"),
+      mode = 'lines+markers',
+      line = list(color = "#41597F"),
+      marker = list(color = "#41597F", 
+                    symbol = 'square'),
+      fill = 'toself', textfont=list(size=3)) %>%
+      layout(
+        title = strong('Attacking'), 
+        font = list(
+          size = 13),
+        polar = list(
+          radialaxis = list(
+            visible = F,
+            range = c(0,99), color = "#41597F"
+          )
+        ),
+        showlegend = F
+      ))
+  #End of the spider plot
+  
+  #Image Sidebar
+  
+  output$ui_fifa <- renderUI({
+    tags$img(src = "https://img.bfmtv.com/c/1256/708/f81/39e4a4c9c3ca0cbc0ff4164fa3ac2.jpeg", alt = "Photo_fifa", height="250")
+  })
+  
+  #End Image Sidebar
+  
+  #ValueBox 1
+  
+  output$number_players<- renderValueBox({
+    valueBox(
+      value = nrow(fifa19),
+      subtitle = "Number of players",
+      icon = icon("male"),
+      color = "light-blue"
+    )
+  })
+  
+  #End ValueBox 1
+
+  
+  #ValueBox 2
+  
+  
+  output$mean_age<- renderValueBox({
+    valueBox(
+      value = paste(round(mean(fifa19$Age, na.rm = TRUE)),"Years old"),
+      subtitle = "Players average age",
+      icon = icon("id-card"),
+      color = "light-blue"
+    )
+  })
+  
+  #End ValueBox2
+  
+  #ValueBox 3
+  
+  output$numb_club <- renderValueBox({
+    valueBox(
+      value = length(unique(fifa19$Club)),
+      subtitle = "Clubs",
+      icon = icon("futbol"),
+      color = "light-blue"
+    )
+  })
+  
+  #End ValueBox 3
+  
+  #ValueBox 4
+  
+  output$numb_natio <- renderValueBox({
+    valueBox(
+      value = length(unique(fifa19$Nationality)),
+      subtitle = "Nationalities",
+      icon = icon("flag"),
+      color = "light-blue"
+    )
+  })
+  
+  #End ValueBox4
+  
+  #Infos_Club
+  
+  current_player2 <- reactive({
+    data_test %>% filter(Name==input$Ply)})
+  
+  output$Table <- renderDataTable(data_final)
+  
+
+  output$infos_club <- renderUI({
+    p1 <- current_player2()
+    HTML(paste(
+      tags$b(paste("Club :", p1$Club), style = "font-size:18px"),
+      paste("Number of players : ", nrow(data_test %>% filter(Club == p1$Club))),
+      paste("Number of nationalities : ", data_test %>% filter(Club==p1$Club) %>% pull(Nationality) %>% unique() %>% length() ),
+      paste("Average age : ", data_test %>% filter(Club==p1$Club) %>% pull(Age) %>% mean() %>% round()),
+      sep = "<br/>"
+    ))
+  })
+  
+  
+  current_player <- reactive({
+    fifa19 %>% filter(Name==input$Ply)})
+  
+current_player2 <- reactive({
+  data_test %>% filter(Name==input$Ply)})
+  
+output$Table <- renderDataTable(data_final)
+
+
+  #Logo Club(Club Tab) 
+  output$image_club <- renderUI({
+    img(src = list[list$Name==input$Ply, 11], alt = "Cannot display image", width = "50px") })
+  #End Logo Club
+  
+  #Flag image
+  
+  output$Flag <- renderUI({
+    img(src = current_player2()$Flag, alt = "Cannot display image", width = "40px") })
+  #End Flag image
+  
+  # Logo Club (Player Tab)
+  output$photo_club <- renderUI({
+    img(src = list[list$Name==input$Ply, 11], alt = "Cannot display image", width = "40px") })
+  #End Logo Club
+  
+  #Photo Joueur
+  output$ui_joueur <- renderUI({
+    tags$img(src = list[list$Name==input$Ply, 5], alt= "Photo_joueur", height="100", width="100") })
+  #End Photo Joueur
+  
+  
+  #Infos_generales_2
+  
+  output$infos_generales_2 <- renderUI({
+    p1<- current_player2()
+    HTML(paste(
+      tags$b(paste("", p1$Name), style="font-size:16px"),
+      paste0("Age : ", p1$Age),
+      paste0("Position : ", p1$Position),
+      paste0("Value : ", p1$Value),
+      paste0("Wage : ", p1$Wage),
+      sep = "<br/>"
+    ))
+  })
+  
+  output$infos_generales_4 <- renderUI({
+    p1<- current_player2()
+    HTML(paste(
+      paste0("Joined ",p1$Club, " on ", strong(p1$Joined)),
+      sep = "<br/>"
+    ))
+  })
+  
+  #Potential and Overall (Tab Player)
+  
+  output$cp <-renderGvis({
+    vle<- data_test[data_test$Name==input$Ply,9]
+    
+    gvisGauge(data.frame(Item="Potential", Value=vle), 
+              options = list(min=0, max=max(fifa19$Potential), height=180, width=180))
+    
+  })
+  
+  output$hp <-renderGvis({
+    vle<- data_test[data_test$Name==input$Ply,8]
+    
+    gvisGauge(data.frame(Item="Overall", Value=vle),
+              options = list(min=0, max=max(fifa19$Overall), height=180, width=180))
+    
+  })
+  
+  # 3 - world map interactive cloropleth
+  
+  output$world_map <- renderLeaflet({
+    
+    color_by <- switch (input$map_color,
+                        "Average Overall" = world_data@data$avg,
+                        "Number of players" = world_data@data$count,
+                        "Average age" = world_data@data$avg
+    )
+    
+    my_palette <- colorNumeric("Blues", domain = color_by, na.color = "transparent")
+    
+    labels <- sprintf(
+      "<strong>%s</strong><br/> Avg. Overall = %g<br/>  Num. Players: %g",
+      world_data@data$NAME, world_data@data$avg, world_data@data$count) %>% 
+      lapply(htmltools::HTML)
+    
+    m <- leaflet(world_data) %>% 
+      addTiles() %>% 
+      addPolygons(
+        fillColor = ~my_palette(color_by),
+        weight = 2,
+        opacity = 1,
+        color = "white",
+        dashArray = "3",
+        fillOpacity = 0.7,
+        highlight = highlightOptions(
+          weight = 5,
+          color = "#666",
+          dashArray = "",
+          fillOpacity = 0.9,
+          bringToFront = TRUE),
+        label = labels,
+        labelOptions = labelOptions(
+          style = list("font-weight" = "normal", padding = "3px 8px"),
+          textsize = "15px",
+          direction = "auto")) %>% 
+      addLegend(pal = my_palette, values = color_by, opacity = 0.7, title = input$map_color,
+                position = "bottomleft")
+    
+    m
+    
+  })  # End of the world map
+  
+  #Hist age
+  output$H <- renderPlot({
+    df <- fifa19["Age"]
+    p <- ggplot(df, aes(x = Age)) +
+      geom_histogram(bins = 30, color = "#FFFFFF", fill = "#8ebbda") +
+      theme_gray() +
+      labs(
+        title = "Histogram of Age \n ",
+        x = "Age",
+        y = "Number of players"
+      ) +
+      theme(
+        plot.title = element_text(hjust = 0.5, color = "#000000", size = 16, face = "bold"),
+        axis.text.y = element_text(size = 14),
+        axis.text.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.title.x = element_text(size = 14)
+      )
+    p
+  })
+  
+  #End Hist Age
+  
+  #Hist age 2
+  
+  output$H_a<- renderPlot({
+    df <- fifa19["Overall"]
+    p <- ggplot(df, aes(x = Overall)) +
+      geom_histogram(bins = 30, color = "#FFFFFF", fill = "#8ebbda") +
+      theme_gray() +
+      labs(
+        title = "Histogram of Overall \n ",
+        x = "Overall",
+        y = "Number of players"
+      ) +
+      theme(
+        plot.title = element_text(hjust = 0.5, color = "#000000", size = 16, face = "bold"),
+        axis.text.y = element_text(size = 14),
+        axis.text.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.title.x = element_text(size = 14)
+      )
+    p
+  })
+  
+  #End Hist Age 2
+  
+  #infos gen 3
+  
+  current_player2 <- reactive({
+    data_test %>% filter(Name==input$Ply)})
+  output$infos_generales_3 <- renderUI({
+    p1 <- current_player2()
+    HTML(paste(
+      tags$b(" ", style = "font-size:20px"),
+      paste0("Wage : \u20ac", format(p1$Wage, big.mark = " ", scientific = FALSE)),
+      paste0("Value : \u20ac", format(p1$Value, big.mark = " ", scientific = FALSE)),
+      paste0("Release clause : \u20ac", format(p$Release.Clause, big.mark = " ", scientific = FALSE)),
+      sep = "<br/>"
+    ))
+  })
+
+
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
